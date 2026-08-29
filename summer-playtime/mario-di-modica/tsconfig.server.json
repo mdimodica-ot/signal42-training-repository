@@ -1,0 +1,37 @@
+{
+  "compilerOptions": {
+	"target": "ES2022",
+	"module": "NodeNext",
+	"moduleResolution": "NodeNext",
+	"lib": [
+	  "ES2023"
+	],
+	"types": [
+	  "node"
+	],
+	"strict": true,
+	"noUncheckedIndexedAccess": true,
+	"noImplicitOverride": true,
+	"noUnusedLocals": true,
+	"noUnusedParameters": true,
+	"outDir": "dist",
+	"rootDir": ".",
+	"sourceMap": true,
+	"declaration": false,
+	"esModuleInterop": true,
+	"skipLibCheck": true,
+	"forceConsistentCasingInFileNames": true
+  },
+  "include": [
+	"server/**/*.ts",
+	"shared/**/*.ts"
+  ],
+  // Without this, `dist/server/**/*.js` — this project's own output, sitting
+  // under outDir — is picked up by editors and re-reported as untyped source.
+  // Same reasoning as tsconfig.json.
+  "exclude": [
+	"node_modules",
+	"dist",
+	"web/dist"
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  // bin/recap.js is the one file no other config covers: it is plain JS, so it
+  // is in neither the web project nor the server project. It went unchecked
+  // long enough to accumulate a real type error, so it gets checked here.
+  //
+  // It stays JavaScript on purpose — it is the global CLI entry point and must
+  // run straight from `bin/` with no build step, including before `npm run
+  // build` has ever been run.
+  "compilerOptions": {
+	"target": "ES2022",
+	"module": "NodeNext",
+	"moduleResolution": "NodeNext",
+	"lib": [
+	  "ES2023"
+	],
+	"types": [
+	  "node"
+	],
+	"strict": true,
+	"allowJs": true,
+	"checkJs": true,
+	"noEmit": true,
+	"skipLibCheck": true
+  },
+  "include": [
+	"bin/**/*.js"
+  ],
+  "exclude": [
+	"node_modules",
+	"dist",
+	"web/dist"
+  ]
+}

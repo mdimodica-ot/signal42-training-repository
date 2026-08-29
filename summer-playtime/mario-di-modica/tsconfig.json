@@ -1,0 +1,52 @@
+{
+  "compilerOptions": {
+	"target": "ES2022",
+	"module": "ESNext",
+	"moduleResolution": "bundler",
+	"lib": [
+	  "ES2022",
+	  "DOM",
+	  "DOM.Iterable"
+	],
+	"types": [
+	  "vite/client"
+	],
+	"strict": true,
+	"noUncheckedIndexedAccess": true,
+	"noImplicitOverride": true,
+	"noUnusedLocals": true,
+	"noUnusedParameters": true,
+	"exactOptionalPropertyTypes": false,
+	"jsx": "preserve",
+	"isolatedModules": true,
+	"verbatimModuleSyntax": true,
+	"skipLibCheck": true,
+	"noEmit": true,
+	"resolveJsonModule": true,
+	"esModuleInterop": true,
+	"baseUrl": ".",
+	"paths": {
+	  "@/*": [
+		"web/src/*"
+	  ],
+	  "@shared/*": [
+		"shared/*"
+	  ]
+	}
+  },
+  "include": [
+	"web/src/**/*.ts",
+	"web/src/**/*.vue",
+	"shared/**/*.ts",
+	"vite.config.ts"
+  ],
+  // `include` already names only sources, but editors index by directory and
+  // will analyse build output as if a human wrote it — the minified bundle in
+  // web/dist reports every property access as an unresolved variable. Listing
+  // the output here is what tells a language service to skip it.
+  "exclude": [
+	"node_modules",
+	"dist",
+	"web/dist"
+  ]
+}

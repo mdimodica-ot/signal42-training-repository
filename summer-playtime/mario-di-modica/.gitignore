@@ -1,0 +1,16 @@
+# Secrets — never commit these.
+.env
+.env.local
+.env.*.local
+
+# Dependencies and build output
+node_modules/
+dist/
+web/dist/
+npm-debug.log*
+
+# Design handoff. The mockup is a working reference, not part of the product:
+# it carries third-party design-system assets and licensed fonts.
+design/
+
+.DS_Store
