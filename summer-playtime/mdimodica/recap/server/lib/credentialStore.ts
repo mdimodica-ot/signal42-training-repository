@@ -98,6 +98,29 @@ export function validateCredentialPath(input: string): PathValidation {
 
 	const normalised = path.normalize(expanded);
 
+	/**
+	 * `fs.realpathSync` for a path that does not exist yet.
+	 *
+	 * The repo check has to see through symlinks, but the file being validated
+	 * is usually about to be created. Resolve the deepest ancestor that does
+	 * exist and re-attach the rest; if nothing resolves, fall back to the input
+	 * so the caller still gets a lexical comparison rather than a throw.
+	 */
+	function realPathOf(candidate: string): string {
+		let head = candidate;
+		const tail: string[] = [];
+		for (; ;) {
+			try {
+				return path.join(fs.realpathSync(head), ...tail);
+			} catch {
+				const parent = path.dirname(head);
+				if (parent === head) return candidate;
+				tail.unshift(path.basename(head));
+				head = parent;
+			}
+		}
+	}
+
 	// A directory, or something clearly meant as one, gets the filename appended.
 	const looksLikeDirectory =
 		raw.endsWith('/') ||
@@ -110,7 +133,10 @@ export function validateCredentialPath(input: string): PathValidation {
 	// Refuse anywhere inside the working tree. A secrets file under version
 	// control is exactly the failure this whole design exists to prevent, and
 	// `.gitignore` cannot be relied on for a path the user just invented.
-	const relativeToRepo = path.relative(PACKAGE_ROOT, target);
+	// Compare real paths, not strings. A lexical compare lets a symlink such as
+	// `~/recap -> <repo>/recap` through: path.relative() answers `../..`, the
+	// check passes, and the tokens land in the working tree anyway.
+	const relativeToRepo = path.relative(realPathOf(PACKAGE_ROOT), realPathOf(target));
 	// An empty relative path means `target` IS the repo root — also inside it.
 	if (!relativeToRepo.startsWith('..') && !path.isAbsolute(relativeToRepo)) {
 		return {

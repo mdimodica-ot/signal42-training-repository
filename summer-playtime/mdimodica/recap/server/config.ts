@@ -159,16 +159,35 @@ export function applySettings(
 	}
 
 	const target = remember ? {...stored} : session;
+	let clearedFromStore = false;
 
 	for (const key of WRITABLE_KEYS) {
 		if (!(key in patch)) continue;
 		const value = patch[key];
-		if (!value) delete target[key];
-		else target[key] = String(value);
+		if (!value) {
+			delete target[key];
+			// Clearing has to clear whichever layer actually holds the value.
+			// With Remember off `target` is the session, so deleting only there
+			// left a remembered value still resolving through raw() — while the
+			// response reported success and the source kept showing connected.
+			// Blank tokens never reach this branch: toPatch() omits them.
+			if (!remember && key in stored) {
+				delete stored[key];
+				clearedFromStore = true;
+			}
+		} else target[key] = String(value);
 		if (remember) delete session[key];
 	}
 
-	if (!remember) return {ok: true};
+	if (!remember) {
+		if (clearedFromStore && !writeStoredCredentials(stored)) {
+			return {
+				ok: false,
+				error: 'Cleared for this session, but the credential file could not be updated.',
+			};
+		}
+		return {ok: true};
+	}
 
 	stored = target;
 	if (!writeStoredCredentials(stored)) {

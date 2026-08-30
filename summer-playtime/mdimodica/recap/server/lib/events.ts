@@ -129,8 +129,12 @@ export function summarise(events: readonly ActivityEventDto[]): ActivitySummaryD
 		// Split, because Confluence `contributor` matches pages you merely edited.
 		docsCreated: count((e) => e.kind === 'page' && e.action === 'created'),
 		docsEdited: count((e) => e.kind === 'page' && e.action === 'edited'),
-		linesAdded: events.reduce((total, e) => total + (e.meta.insertions ?? 0), 0),
-		linesRemoved: events.reduce((total, e) => total + (e.meta.deletions ?? 0), 0),
+		// Commits only. GitLab puts diff stats on merge requests too (and the
+		// fixtures always do), so summing every event counts the same lines
+		// twice: once for the MR, once for the commits inside it. These render
+		// in the commits card, beside `repos` below, which was always filtered.
+		linesAdded: events.reduce((t, e) => t + (e.kind === 'commit' ? (e.meta.insertions ?? 0) : 0), 0),
+		linesRemoved: events.reduce((t, e) => t + (e.kind === 'commit' ? (e.meta.deletions ?? 0) : 0), 0),
 		repos: new Set(events.filter((e) => e.kind === 'commit').map((e) => e.project)).size,
 	};
 }
