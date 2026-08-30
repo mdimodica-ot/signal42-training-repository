@@ -8,7 +8,7 @@
 		"run",
 		"serve:demo"
 	  ],
-	  "cwd": "recap",
+	  "cwd": ".",
 	  "port": 4319,
 	  "autoPort": true
 	},
@@ -19,7 +19,7 @@
 		"run",
 		"serve"
 	  ],
-	  "cwd": "recap",
+	  "cwd": ".",
 	  "port": 4320,
 	  "autoPort": true
 	}
