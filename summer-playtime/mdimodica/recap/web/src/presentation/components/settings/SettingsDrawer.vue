@@ -184,6 +184,20 @@ async function confirmClear(): Promise<void> {
             </button>
           </div>
 
+          <div class="field">
+            <label for="s-git-author">Git author</label>
+            <input
+                id="s-git-author"
+                v-model="settings.form.gitAuthor"
+                autocomplete="email"
+                placeholder="you@example.com"
+                type="text"
+            >
+            <span class="hint">
+              Optional when every repository has <code>git config user.email</code>.
+            </span>
+          </div>
+
           <div style="display: flex; flex-direction: column; gap: 10px">
             <div v-for="(_, index) in settings.form.repos" :key="index" class="repo-row">
               <input

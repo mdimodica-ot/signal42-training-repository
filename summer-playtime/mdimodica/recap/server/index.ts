@@ -13,6 +13,7 @@ import {
 	publicConfig,
 	readiness,
 	resolveStorePath,
+	storePathWarning,
 } from './config.js';
 import {WEB_DIST} from './lib/paths.js';
 import {toDisplayPath} from './lib/credentialStore.js';
@@ -249,13 +250,14 @@ function demoResponse(window: DateWindow): ActivityResponse {
 function resolveRange(query: Record<string, string | undefined>): DateWindow | null {
 	const now = new Date();
 
-	if (query.from && query.to) {
+	if (query.from || query.to) {
+		if (!query.from || !query.to) return null;
 		const from = parseDay(query.from);
 		const to = parseDay(query.to);
 		// Only user-supplied dates can be invalid; every preset below is built
 		// from `now`. Reject here so the caller can answer 400 rather than
 		// letting an Invalid Date reach toISOString().
-		if (!from || !to) return null;
+		if (!from || !to || from.getTime() > to.getTime()) return null;
 		return {from: startOfDay(from), to: endOfDay(to)};
 	}
 
@@ -292,9 +294,23 @@ function resolveRange(query: Record<string, string | undefined>): DateWindow | n
  */
 function parseDay(value: string): Date | null {
 	const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
-	if (match) return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-	const parsed = new Date(value); // full timestamp: trust it as-is
-	return Number.isNaN(parsed.getTime()) ? null : parsed;
+	if (!match) return null;
+
+	const year = Number(match[1]);
+	const month = Number(match[2]);
+	const day = Number(match[3]);
+	const parsed = new Date(year, month - 1, day);
+
+	// Date normalises impossible calendar values (31 February -> 3 March).
+	// Reject those rather than silently serving a different range.
+	if (
+		parsed.getFullYear() !== year ||
+		parsed.getMonth() !== month - 1 ||
+		parsed.getDate() !== day
+	) {
+		return null;
+	}
+	return parsed;
 }
 
 function startOfDay(date: Date): string {
@@ -325,7 +341,10 @@ app.get(/^(?!\/api\/).*/, (_req: Request, res: Response) => {
 /* ------------------------------------------------------------------ listen */
 
 const {port} = getConfig();
-app.listen(port, () => {
+const pathWarning = storePathWarning();
+if (pathWarning) console.warn(`\n  ! ${pathWarning}\n`);
+
+app.listen(port, 'localhost', () => {
 	console.log(`\n  Recap running at http://localhost:${port}  [${DEMO ? 'demo' : 'live'}]\n`);
 	if (!hasBuild) console.log('  ! No frontend build found — run `npm run build`.\n');
 });

@@ -42,6 +42,9 @@ interface ContentSearchResponse {
 	results?: ConfluencePage[];
 }
 
+const PAGE_SIZE = 100;
+const MAX_PAGES = 10;
+
 export async function fetchConfluence(
 	{baseUrl, email, token}: AtlassianConfig,
 	{from, to}: DateWindow,
@@ -64,21 +67,34 @@ export async function fetchConfluence(
 		`AND lastmodified >= "${cqlDate(from, -1)}" AND lastmodified <= "${cqlDate(to, 1)}" ` +
 		`ORDER BY lastmodified DESC`;
 
-	const url = new URL(`${baseUrl}/rest/api/content/search`);
-	url.searchParams.set('cql', cql);
-	url.searchParams.set('limit', '100');
-	url.searchParams.set('expand', 'version,space,history');
+	const pages: ConfluencePage[] = [];
+	let truncated = false;
 
-	const page = await getJson<ContentSearchResponse>(url.toString(), {
-		headers,
-		label: 'Confluence',
-	});
+	for (let pageIndex = 0; pageIndex < MAX_PAGES; pageIndex += 1) {
+		const url = new URL(`${baseUrl}/rest/api/content/search`);
+		url.searchParams.set('cql', cql);
+		url.searchParams.set('limit', String(PAGE_SIZE));
+		url.searchParams.set('start', String(pageIndex * PAGE_SIZE));
+		url.searchParams.set('expand', 'version,space,history');
 
-	const events = (page.results ?? [])
+		const page = await getJson<ContentSearchResponse>(url.toString(), {
+			headers,
+			label: 'Confluence',
+		});
+		const batch = page.results ?? [];
+		pages.push(...batch);
+		if (batch.length < PAGE_SIZE) break;
+		if (pageIndex === MAX_PAGES - 1) truncated = true;
+	}
+
+	const events = pages
 		.map((result) => pageEvent(result, baseUrl, myAccountId))
 		.filter((event): event is ActivityEventDto => event !== null);
 
-	return {events, warnings: []};
+	return {
+		events,
+		warnings: truncated ? [`Confluence results truncated at ${PAGE_SIZE * MAX_PAGES} items`] : [],
+	};
 }
 
 function pageEvent(

@@ -46,6 +46,8 @@ function render(events: readonly ActivityEvent[], range: DateRange): string {
 					shipped.push(
 						`${ref('!', event)}${stripIid(event.title)} — merged into \`${event.meta.targetBranch ?? 'main'}\`${diffOf(event)}`,
 					);
+				} else if (event.action === 'closed') {
+					shipped.push(`${ref('!', event)}${stripIid(event.title)} — closed without merge`);
 				} else if (event.action === 'opened') {
 					const pipeline = event.meta.pipeline ? `, pipeline ${event.meta.pipeline}` : '';
 					inProgress.push(`${ref('!', event)}${stripIid(event.title)} — open${pipeline}`);

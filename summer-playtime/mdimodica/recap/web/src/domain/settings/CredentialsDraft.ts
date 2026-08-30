@@ -7,6 +7,7 @@ export interface CredentialsForm {
 	jiraToken: string;
 	confluenceToken: string;
 	repos: string[];
+	gitAuthor: string;
 	/** Save to the machine's credential file rather than for this session only. */
 	remember: boolean;
 	/** Where that file lives. Blank means the platform default. */
@@ -25,6 +26,7 @@ export const EMPTY_FORM: CredentialsForm = {
 	jiraToken: '',
 	confluenceToken: '',
 	repos: [],
+	gitAuthor: '',
 	remember: false,
 	storePath: '',
 };
@@ -51,6 +53,7 @@ export class CredentialsDraft {
 			JIRA_EMAIL: this.form.jiraEmail.trim(),
 			CONFLUENCE_BASE_URL: confluenceUrlFor(this.form.jiraBaseUrl),
 			RECAP_GIT_REPOS: this.form.repos.map((r) => r.trim()).filter(Boolean).join(','),
+			RECAP_GIT_AUTHOR: this.form.gitAuthor.trim(),
 		};
 
 		// Only send secrets the user actually typed.

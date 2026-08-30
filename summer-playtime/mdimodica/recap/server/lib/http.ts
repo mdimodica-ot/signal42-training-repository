@@ -39,6 +39,9 @@ export async function getJson<T>(url: string, options: GetJsonOptions = {}): Pro
 		response = await fetch(url, {
 			headers: {Accept: 'application/json', ...headers},
 			signal: controller.signal,
+			// Credentials belong to the configured origin. Following a redirect
+			// could forward them to a typoed or compromised destination.
+			redirect: 'manual',
 		});
 	} catch (error) {
 		if (error instanceof Error && error.name === 'AbortError') {

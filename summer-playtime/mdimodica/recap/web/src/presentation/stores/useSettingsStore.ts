@@ -45,6 +45,7 @@ export const useSettingsStore = defineStore('settings', () => {
 			jiraToken: '',
 			confluenceToken: '',
 			repos: current.repos.length ? [...current.repos] : [''],
+			gitAuthor: current.gitAuthor,
 			// Pre-ticked once something is already saved, so re-saving does not
 			// silently demote persisted credentials back to session-only.
 			remember: current.isRemembered,

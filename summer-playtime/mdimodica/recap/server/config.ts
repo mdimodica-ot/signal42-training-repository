@@ -117,7 +117,19 @@ export interface AppConfig {
 
 /** True when the environment pins the location, so the UI must not offer to move it. */
 export function storePathLocked(): boolean {
-	return Boolean(process.env.RECAP_CREDENTIALS_PATH?.trim());
+	return envStorePathValidation()?.ok === true;
+}
+
+function envStorePathValidation(): PathValidation | null {
+	const configured = process.env.RECAP_CREDENTIALS_PATH?.trim();
+	return configured ? validateCredentialPath(configured) : null;
+}
+
+/** Invalid environment paths fall back safely, but must never do so silently. */
+export function storePathWarning(): string | null {
+	const validation = envStorePathValidation();
+	if (!validation || validation.ok) return null;
+	return `RECAP_CREDENTIALS_PATH is invalid (${validation.error}). Using the saved or default location instead.`;
 }
 
 /** Resolve user input to an absolute file path without saving anything. */
@@ -151,7 +163,7 @@ export function applySettings(
 		if (!moveCredentialStore(resolved.path)) {
 			return {
 				ok: false,
-				error: `Could not move the credential file to ${resolved.path}.`,
+				error: `Could not move the credential file to ${toDisplayPath(resolved.path)}.`,
 				field: 'storePath',
 			};
 		}

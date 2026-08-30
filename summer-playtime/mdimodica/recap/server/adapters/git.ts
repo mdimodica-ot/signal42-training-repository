@@ -37,6 +37,9 @@ export async function fetchGit(
 			// repo returns the whole team's commits, which is actively misleading.
 			// Fall back to the repo's own configured identity.
 			const who = author || (await detectAuthor(repo));
+			if (!who) {
+				throw new Error('no author configured (set Git author or git config user.email)');
+			}
 			return logRepo(repo, who, from, to);
 		}),
 	);
@@ -77,7 +80,7 @@ async function logRepo(
 		`--pretty=format:${REC}%H${SEP}%an${SEP}%ae${SEP}%aI${SEP}%s`,
 		'--numstat',
 	];
-	if (author) args.push(`--author=${author}`);
+	args.push(`--author=${author}`);
 
 	let stdout: string;
 	try {

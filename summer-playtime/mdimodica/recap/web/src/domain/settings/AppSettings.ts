@@ -72,6 +72,10 @@ export class AppSettings {
 		return this.dto.git.repos;
 	}
 
+	get gitAuthor(): string {
+		return this.dto.git.author;
+	}
+
 	get gitlab() {
 		return this.dto.gitlab;
 	}

@@ -158,21 +158,24 @@ export function validateCredentialPath(input: string): PathValidation {
 	const ancestor = nearestExistingAncestor(parent);
 
 	if (!ancestor) {
-		return {ok: false, error: `No part of ${parent} exists.`};
+		return {ok: false, error: `No part of ${toDisplayPath(parent)} exists.`};
 	}
 
 	try {
 		if (!fs.statSync(ancestor).isDirectory()) {
-			return {ok: false, error: `${ancestor} is a file, not a folder.`};
+			return {ok: false, error: `${toDisplayPath(ancestor)} is a file, not a folder.`};
 		}
 		fs.accessSync(ancestor, fs.constants.W_OK);
 	} catch {
-		return {ok: false, error: `Cannot write to ${ancestor}. Check the path and its permissions.`};
+		return {
+			ok: false,
+			error: `Cannot write to ${toDisplayPath(ancestor)}. Check the path and its permissions.`,
+		};
 	}
 
 	// Writing a file over an existing directory fails at save time; say so now.
 	if (fs.existsSync(target) && fs.statSync(target).isDirectory()) {
-		return {ok: false, error: `${target} is a folder.`};
+		return {ok: false, error: `${toDisplayPath(target)} is a folder.`};
 	}
 
 	return {ok: true, path: target};
