@@ -122,6 +122,14 @@ interface Job {
 app.get('/api/activity', async (req: Request, res: Response) => {
 	const window = resolveRange(req.query as Record<string, string | undefined>);
 
+	// An unparseable from/to used to reach toISOString() and throw RangeError.
+	// Express 4 does not adopt rejections from an async handler, so that killed
+	// the process instead of answering — one malformed query string taking down
+	// every source, which is the opposite of the per-source isolation below.
+	if (!window) {
+		return res.status(400).json({error: 'Invalid date range. Use from and to as YYYY-MM-DD.'});
+	}
+
 	// Demo is decided by how the process was started. A query parameter cannot
 	// talk a live server into serving fixtures.
 	if (DEMO) return res.json(demoResponse(window));
@@ -238,11 +246,17 @@ function demoResponse(window: DateWindow): ActivityResponse {
  * Supported presets mirror the design's timeframe tabs. Everything is resolved
  * server-side so the client and server never disagree about "this week".
  */
-function resolveRange(query: Record<string, string | undefined>): DateWindow {
+function resolveRange(query: Record<string, string | undefined>): DateWindow | null {
 	const now = new Date();
 
 	if (query.from && query.to) {
-		return {from: startOfDay(parseDay(query.from)), to: endOfDay(parseDay(query.to))};
+		const from = parseDay(query.from);
+		const to = parseDay(query.to);
+		// Only user-supplied dates can be invalid; every preset below is built
+		// from `now`. Reject here so the caller can answer 400 rather than
+		// letting an Invalid Date reach toISOString().
+		if (!from || !to) return null;
+		return {from: startOfDay(from), to: endOfDay(to)};
 	}
 
 	switch (query.preset ?? '7d') {
@@ -276,10 +290,11 @@ function resolveRange(query: Record<string, string | undefined>): DateWindow {
  * Greenwich is the *previous* day once converted to local time. Asking for
  * "Aug 1" would then silently include Jul 31. Split the parts instead.
  */
-function parseDay(value: string): Date {
+function parseDay(value: string): Date | null {
 	const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
 	if (match) return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-	return new Date(value); // full timestamp: trust it as-is
+	const parsed = new Date(value); // full timestamp: trust it as-is
+	return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 function startOfDay(date: Date): string {

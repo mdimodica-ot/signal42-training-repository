@@ -59,10 +59,20 @@ export const useDashboardStore = defineStore('dashboard', () => {
 		status.value = 'setup';
 	}
 
+	// Only the newest load may write. Switching timeframe twice in quick
+	// succession leaves two fetches in flight, and the slower one used to land
+	// last and win — a month of events under a highlighted "Yesterday" tab.
+	let latestLoad = 0;
+
 	async function load(): Promise<void> {
+		const generation = ++latestLoad;
 		status.value = 'loading';
 
 		const snapshot = await container.loadActivity.execute(timeframe.value);
+
+		// A superseded response must not touch state, not even `status`:
+		// leaving it on 'loading' lets the winner finish the job.
+		if (generation !== latestLoad) return;
 
 		isDemo.value = snapshot.demo;
 		feed.value = ActivityFeed.of(snapshot.events);
