@@ -42,13 +42,26 @@ function onKeydown(event: KeyboardEvent): void {
 onMounted(async () => {
   document.addEventListener('keydown', onKeydown);
 
-  await settings.load();
+  // A failing /api/config must not abort the rest of mount. It used to throw
+  // straight out of onMounted, so dashboard.load() never ran and `status`
+  // stayed on its initial 'loading': an app spinning forever with no error and
+  // no retry. Falling through lets LoadActivity turn the same failure into the
+  // error screen, which at least names it and offers a retry.
+  let settingsLoaded = true;
+  try {
+    await settings.load();
+  } catch {
+    settingsLoaded = false;
+  }
+
   settings.openForm();
   dashboard.restorePreferredTimeframe();
 
   // Nothing connected and not a demo run: show setup instead of fetching
-  // zero sources and rendering that as an empty week.
-  if (settings.needsSetup) {
+  // zero sources and rendering that as an empty week. Only trust this when the
+  // config actually loaded — otherwise `needsSetup` is a default, and greeting
+  // a failure with the setup screen hides it.
+  if (settingsLoaded && settings.needsSetup) {
     dashboard.showSetup();
     return;
   }
