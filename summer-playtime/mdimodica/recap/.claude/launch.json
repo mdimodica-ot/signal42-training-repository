@@ -1,0 +1,27 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+	{
+	  "name": "recap-demo",
+	  "runtimeExecutable": "npm",
+	  "runtimeArgs": [
+		"run",
+		"serve:demo"
+	  ],
+	  "cwd": ".",
+	  "port": 4319,
+	  "autoPort": true
+	},
+	{
+	  "name": "recap-live",
+	  "runtimeExecutable": "npm",
+	  "runtimeArgs": [
+		"run",
+		"serve"
+	  ],
+	  "cwd": ".",
+	  "port": 4320,
+	  "autoPort": true
+	}
+  ]
+}

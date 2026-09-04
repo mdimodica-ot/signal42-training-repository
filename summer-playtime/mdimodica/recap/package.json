@@ -1,0 +1,45 @@
+{
+  "name": "recap",
+  "version": "0.1.0",
+  "private": true,
+  "description": "What did I do last week? Aggregates your Git, GitLab, Jira and Confluence activity into one timeline.",
+  "type": "module",
+  "bin": {
+	"recap": "./bin/recap.js"
+  },
+  "engines": {
+	"node": ">=18"
+  },
+  "scripts": {
+	"build": "npm run build:web && npm run build:server",
+	"build:web": "vite build",
+	"build:server": "tsc -p tsconfig.server.json",
+	"start": "npm run build && node dist/server/index.js",
+	"start:demo": "npm run build && node dist/server/index.js --demo",
+	"serve": "node dist/server/index.js",
+	"serve:demo": "node dist/server/index.js --demo",
+	"dev": "vite",
+	"dev:server": "tsx watch server/index.ts",
+	"dev:server:demo": "tsx watch server/index.ts --demo",
+	"typecheck": "npm run typecheck:web && npm run typecheck:server && npm run typecheck:bin",
+	"typecheck:web": "vue-tsc --noEmit -p tsconfig.json",
+	"typecheck:server": "tsc --noEmit -p tsconfig.server.json",
+	"typecheck:bin": "tsc -p tsconfig.bin.json"
+  },
+  "dependencies": {
+	"@faker-js/faker": "^9.0.0",
+	"dotenv": "^16.4.5",
+	"express": "^4.19.2"
+  },
+  "devDependencies": {
+	"@types/express": "^5.0.6",
+	"@types/node": "^26.4.0",
+	"@vitejs/plugin-vue": "^5.1.4",
+	"pinia": "^2.2.4",
+	"tsx": "^4.23.12",
+	"typescript": "^5.6.3",
+	"vite": "^5.4.10",
+	"vue": "^3.5.12",
+	"vue-tsc": "^2.1.10"
+  }
+}

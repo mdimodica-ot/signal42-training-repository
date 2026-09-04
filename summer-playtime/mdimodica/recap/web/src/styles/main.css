@@ -1,0 +1,1933 @@
+/* Recap design tokens.
+   Dark theme, monospace type scale. Every colour used by the app is declared
+   here as a custom property so a theme change is a one-file edit and no
+   component hardcodes a hex that duplicates a token. */
+
+:root {
+    --rc-bg: #0f1a2e;
+    --rc-bg-soft: #16243c;
+    --rc-bg-cool: #1b2e4d;
+    --rc-text: #e8ecf2;
+    --rc-text-muted: #a4b1c2;
+    --rc-text-faint: #6e7d92;
+    --rc-text-meta: #8a99ae;
+    --rc-border: #25344e;
+
+    --rc-blue: rgb(47, 102, 241);
+    --rc-blue-soft: rgb(132, 170, 255);
+    --rc-blue-lilac: rgb(155, 129, 241);
+    --rc-success: rgb(55, 189, 108);
+    --rc-danger: rgb(255, 75, 106);
+    --rc-warning: rgb(241, 153, 41);
+
+    --rc-shadow-card: 0 12px 60px 0 rgba(0, 0, 0, 0.4);
+    --rc-shadow-card-sm: 0 4px 20px 0 rgba(0, 0, 0, 0.4);
+
+    --rc-font: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --rc-font-head: "Space Mono", ui-monospace, monospace;
+
+    /* Per-source hues, straight from the mockup. */
+    --src-git: #f0653a;
+    --src-gitlab: #fc6d26;
+    --src-jira: rgb(47, 102, 241);
+    --src-confluence: #2bb8e6;
+
+    --page-bg: #0b1424;
+    --chrome: #131f35;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--page-bg);
+    color: var(--rc-text);
+    font-family: var(--rc-font);
+}
+
+body {
+    padding-bottom: 120px;
+    min-height: 100vh;
+}
+
+a {
+    color: #6e9bff;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #a8c3ff;
+}
+
+::selection {
+    background: rgba(47, 102, 241, 0.35);
+}
+
+@keyframes recapPulse {
+    0%, 100% {
+        opacity: 0.35;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+@keyframes recapShimmer {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+@keyframes recapSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.shimmer {
+    background: linear-gradient(90deg, #16243c 0%, #1e3050 50%, #16243c 100%);
+    background-size: 200% 100%;
+    animation: recapShimmer 1.4s ease-in-out infinite;
+    border-radius: 4px;
+}
+
+.spinner {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1.6px solid rgba(132, 170, 255, 0.25);
+    border-top-color: var(--rc-blue-soft);
+    animation: recapSpin 0.8s linear infinite;
+    display: inline-block;
+}
+
+/* ----------------------------------------------------------------- header */
+
+.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    height: 68px;
+    padding: 0 24px;
+    overflow: hidden;
+    background: rgba(11, 20, 36, 0.86);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--rc-border);
+}
+
+.brand-name {
+    font-family: var(--rc-font-head);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+}
+
+.brand-tag {
+    font-size: 9.5px;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--rc-text-faint);
+    white-space: nowrap;
+}
+
+.tfgroup {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 3px;
+    background: var(--chrome);
+    border: 1px solid var(--rc-border);
+    border-radius: 8px;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.tfgroup::-webkit-scrollbar {
+    display: none;
+}
+
+.tf {
+    height: 30px;
+    padding: 0 13px;
+    border: 0;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: var(--rc-font);
+    font-size: 12.5px;
+    font-weight: 700;
+    white-space: nowrap;
+    flex: 0 0 auto;
+    background: transparent;
+    color: var(--rc-text-muted);
+}
+
+.tf[aria-pressed="true"] {
+    background: var(--rc-blue);
+    color: #fff;
+}
+
+.tf:hover:not([aria-pressed="true"]) {
+    background: var(--rc-bg-cool);
+    color: var(--rc-text);
+}
+
+/* Custom-range popover. Anchored under the timeframe group; `prompt()` is not
+   an option because it is blocked inside sandboxed iframes. */
+.custom-pop {
+    position: fixed;
+    z-index: 55; /* coordinates set in JS from the button rect */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 268px;
+    padding: 14px;
+    background: var(--chrome);
+    border: 1px solid var(--rc-border);
+    border-radius: 10px;
+    box-shadow: var(--rc-shadow-card);
+}
+
+.custom-pop-err {
+    font-size: 11px;
+    line-height: 15px;
+    color: var(--rc-danger);
+}
+
+/* Range calendar */
+.cal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.cal-month {
+    font-family: var(--rc-font-head);
+    font-size: 12.5px;
+    font-weight: 700;
+}
+
+.cal-dow, .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+}
+
+.cal-dow span {
+    text-align: center;
+    font-size: 9.5px;
+    color: var(--rc-text-faint);
+    padding-bottom: 2px;
+}
+
+.cal-day {
+    height: 30px;
+    border: 0;
+    border-radius: 0;
+    cursor: pointer;
+    background: transparent;
+    color: var(--rc-text);
+    font-family: var(--rc-font);
+    font-size: 11.5px;
+    padding: 0;
+}
+
+.cal-day:hover:not(:disabled) {
+    background: var(--rc-bg-cool);
+}
+
+.cal-day.muted {
+    color: var(--rc-text-faint);
+    opacity: 0.45;
+}
+
+.cal-day:disabled {
+    color: var(--rc-text-faint);
+    opacity: 0.25;
+    cursor: not-allowed;
+}
+
+.cal-day.today {
+    box-shadow: inset 0 0 0 1px var(--rc-border);
+}
+
+.cal-day.in-range {
+    background: rgba(47, 102, 241, 0.18);
+}
+
+.cal-day.start, .cal-day.end {
+    background: var(--rc-blue);
+    color: #fff;
+    font-weight: 700;
+}
+
+.cal-day.start {
+    border-radius: 6px 0 0 6px;
+}
+
+.cal-day.end {
+    border-radius: 0 6px 6px 0;
+}
+
+.cal-day.start.end {
+    border-radius: 6px;
+}
+
+.cal-readout {
+    font-size: 11px;
+    color: var(--rc-text-muted);
+    text-align: center;
+    padding: 2px 0;
+    min-height: 16px;
+}
+
+.btn.sm.primary {
+    border-color: var(--rc-blue);
+    background: var(--rc-blue);
+    color: #fff;
+}
+
+.range-label {
+    font-size: 11.5px;
+    color: var(--rc-text-faint);
+    flex: 0 100000 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.track {
+    width: 34px;
+    height: 19px;
+    border-radius: 1000px;
+    padding: 2px;
+    background: #25344e;
+    transition: background 0.15s ease;
+}
+
+.track.on {
+    background: var(--rc-warning);
+}
+
+.track.on.blue {
+    background: var(--rc-blue);
+}
+
+.knob {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.15s ease;
+}
+
+.track.on .knob {
+    transform: translateX(15px);
+}
+
+.icon-btn {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 1px solid var(--rc-border);
+    background: var(--chrome);
+    color: var(--rc-text-muted);
+    cursor: pointer;
+}
+
+.icon-btn:hover {
+    color: var(--rc-text);
+    border-color: var(--rc-blue);
+}
+
+.privacy {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    padding: 9px 24px;
+    background: #101b2f;
+    border-bottom: 1px solid var(--rc-border);
+}
+
+.privacy span {
+    font-size: 11px;
+    line-height: 16px;
+    color: var(--rc-text-faint);
+}
+
+/* ------------------------------------------------------------------ shell */
+
+.wrap {
+    max-width: 1360px;
+    margin: 0 auto;
+    padding: 30px;
+}
+
+.cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+}
+
+.card {
+    background: var(--rc-bg);
+    border: 1px solid var(--rc-border);
+    border-radius: 10px;
+    padding: 18px 20px 16px;
+    box-shadow: var(--rc-shadow-card-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+    text-align: left;
+    font-family: var(--rc-font);
+}
+
+.card:disabled {
+    cursor: not-allowed;
+}
+
+.card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.card-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.card-icon img {
+    width: 17px;
+    height: 17px;
+    object-fit: contain;
+}
+
+.card-note {
+    font-size: 10.5px;
+    color: var(--rc-text-faint);
+}
+
+.card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.card-value {
+    font-family: var(--rc-font-head);
+    font-size: 40px;
+    line-height: 1;
+    font-weight: 500;
+    letter-spacing: -1.5px;
+    color: var(--rc-text);
+}
+
+.card-label {
+    font-family: var(--rc-font-head);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--rc-text-faint);
+}
+
+.card-sub {
+    font-size: 11.5px;
+    color: var(--rc-text-muted);
+}
+
+.card[data-src="git"][aria-pressed="true"] {
+    background: rgba(240, 101, 58, 0.07);
+    border-color: var(--src-git);
+}
+
+.card[data-src="gitlab"][aria-pressed="true"] {
+    background: rgba(252, 109, 38, 0.07);
+    border-color: var(--src-gitlab);
+}
+
+.card[data-src="jira"][aria-pressed="true"] {
+    background: rgba(47, 102, 241, 0.08);
+    border-color: var(--rc-blue);
+}
+
+.card[data-src="confluence"][aria-pressed="true"] {
+    background: rgba(43, 184, 230, 0.07);
+    border-color: var(--src-confluence);
+}
+
+.grid-main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 20px;
+    margin-top: 24px;
+    align-items: start;
+}
+
+.panel {
+    background: var(--rc-bg);
+    border: 1px solid var(--rc-border);
+    border-radius: 10px;
+    box-shadow: var(--rc-shadow-card);
+}
+
+.panel-sm {
+    box-shadow: var(--rc-shadow-card-sm);
+    padding: 18px 20px;
+}
+
+.panel-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    row-gap: 10px;
+    flex-wrap: wrap;
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--rc-border);
+}
+
+.panel-title {
+    font-family: var(--rc-font-head);
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.panel-meta {
+    font-size: 11px;
+    color: var(--rc-text-faint);
+}
+
+.legend {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 24px;
+    padding: 0 9px;
+    border-radius: 1000px;
+    font-size: 11px;
+    white-space: nowrap;
+    flex: 0 0 auto;
+}
+
+.chip .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.chip.git {
+    background: rgba(240, 101, 58, 0.12);
+    color: var(--src-git);
+}
+
+.chip.git .dot {
+    background: var(--src-git);
+}
+
+.chip.gitlab {
+    background: rgba(252, 109, 38, 0.12);
+    color: var(--src-gitlab);
+}
+
+.chip.gitlab .dot {
+    background: var(--src-gitlab);
+}
+
+.chip.jira {
+    background: rgba(47, 102, 241, 0.16);
+    color: var(--rc-blue-soft);
+}
+
+.chip.jira .dot {
+    background: var(--rc-blue);
+}
+
+.chip.confluence {
+    background: rgba(43, 184, 230, 0.12);
+    color: var(--src-confluence);
+}
+
+.chip.confluence .dot {
+    background: var(--src-confluence);
+}
+
+.filter-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 24px;
+    padding: 0 10px;
+    border-radius: 1000px;
+    border: 1px solid var(--rc-blue);
+    background: rgba(47, 102, 241, 0.12);
+    color: var(--rc-blue-soft);
+    font-family: var(--rc-font);
+    font-size: 11px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.filter-pill:hover {
+    background: rgba(47, 102, 241, 0.2);
+}
+
+/* --------------------------------------------------------------- timeline */
+
+.timeline {
+    padding: 6px 22px 22px;
+}
+
+.day-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 20px 0 10px;
+}
+
+.day-head.sep {
+    border-top: 1px solid var(--rc-border);
+    margin-top: 12px;
+}
+
+.day-name {
+    font-family: var(--rc-font-head);
+    font-size: 12.5px;
+    font-weight: 700;
+}
+
+.day-meta {
+    font-size: 11px;
+    color: var(--rc-text-faint);
+}
+
+.row {
+    display: flex;
+    gap: 16px;
+    padding: 12px;
+    border-radius: 8px;
+}
+
+.row:hover {
+    background: #16243c;
+}
+
+.rail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 30px;
+    flex: 0 0 30px;
+}
+
+.rail-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rail-icon img {
+    width: 15px;
+    height: 15px;
+    object-fit: contain;
+}
+
+.rail-line {
+    flex: 1;
+    width: 1px;
+    background: var(--rc-border);
+}
+
+.rail-icon.git {
+    background: rgba(240, 101, 58, 0.14);
+}
+
+.rail-icon.gitlab {
+    background: rgba(252, 109, 38, 0.14);
+}
+
+.rail-icon.jira {
+    background: rgba(47, 102, 241, 0.16);
+}
+
+.rail-icon.confluence {
+    background: rgba(43, 184, 230, 0.14);
+}
+
+.row-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.row-top {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+}
+
+.row-title {
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--rc-text);
+}
+
+.row-title.doc {
+    font-weight: 700;
+}
+
+.row-time {
+    font-size: 11px;
+    color: var(--rc-text-faint);
+    white-space: nowrap;
+}
+
+.row-tags {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    height: 20px;
+    padding: 0 7px;
+    border-radius: 3px;
+    font-size: 10.25px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.badge.done {
+    background: rgba(55, 189, 108, 0.16);
+    color: var(--rc-success);
+}
+
+.badge.merged {
+    background: rgba(155, 129, 241, 0.18);
+    color: #b9a5f7;
+}
+
+.badge.open {
+    background: rgba(241, 153, 41, 0.18);
+    color: var(--rc-warning);
+}
+
+.badge.review {
+    background: rgba(47, 102, 241, 0.18);
+    color: var(--rc-blue-soft);
+}
+
+.badge.closed {
+    background: rgba(110, 125, 146, 0.2);
+    color: var(--rc-text-muted);
+}
+
+.sha {
+    font-size: 11px;
+    padding: 0 6px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 3px;
+    background: var(--rc-bg-cool);
+    color: var(--rc-text-muted);
+}
+
+.mono {
+    font-size: 11px;
+    color: var(--rc-text-muted);
+}
+
+.add {
+    font-size: 11px;
+    color: var(--rc-success);
+}
+
+.del {
+    font-size: 11px;
+    color: var(--rc-danger);
+}
+
+.note {
+    font-size: 11.5px;
+    color: var(--rc-text-muted);
+}
+
+.sep-dot {
+    color: var(--rc-text-faint);
+    font-size: 11px;
+}
+
+/* ------------------------------------------------------------- right rail */
+
+.rail-col {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.rail-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.rail-kicker {
+    font-family: var(--rc-font-head);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--rc-text-faint);
+}
+
+.pulse {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    animation: recapPulse 2.4s ease-in-out infinite;
+}
+
+.src-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.src-swatch {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+}
+
+.src-name {
+    font-size: 12.5px;
+    color: var(--rc-text);
+}
+
+.src-status {
+    font-size: 10.5px;
+    color: var(--rc-text-faint);
+}
+
+.src-status.err {
+    color: var(--rc-danger);
+}
+
+.src-status.warn {
+    color: var(--rc-warning);
+}
+
+.src-status.ok {
+    color: var(--rc-text-faint);
+}
+
+.btn-wide {
+    margin-top: 16px;
+    width: 100%;
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid var(--rc-border);
+    background: transparent;
+    color: var(--rc-blue-soft);
+    font-family: var(--rc-font);
+    font-size: 12.5px;
+    cursor: pointer;
+}
+
+.btn-wide:hover {
+    border-color: var(--rc-blue);
+}
+
+.bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    height: 104px;
+    margin-top: 12px;
+}
+
+.bar-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+}
+
+.bar-n {
+    font-size: 10px;
+    color: var(--rc-blue-soft);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.bar-col:hover .bar-n {
+    opacity: 1;
+}
+
+.bar {
+    width: 100%;
+    border-radius: 3px 3px 0 0;
+    background: rgba(47, 102, 241, 0.35);
+}
+
+.bar.today {
+    background: var(--rc-blue);
+}
+
+.bar.empty {
+    background: var(--rc-bg-cool);
+}
+
+.bar-d {
+    font-size: 9.5px;
+    color: var(--rc-text-faint);
+}
+
+.promo {
+    border-radius: 40px 6px 40px 6px;
+    background: linear-gradient(160deg, #0b2744 0%, #00489e 100%);
+    padding: 22px 24px;
+    box-shadow: var(--rc-shadow-card);
+}
+
+.promo h3 {
+    margin: 12px 0 0;
+    font-family: var(--rc-font-head);
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.promo p {
+    margin: 8px 0 16px;
+    font-size: 12px;
+    line-height: 17px;
+    color: #c9d6ea;
+}
+
+.promo p strong {
+    color: #fff;
+    font-weight: 700;
+}
+
+.promo-spark {
+    width: 22px;
+    height: 22px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: var(--rc-blue-lilac);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.promo-btn {
+    border-color: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+}
+
+/* Disabled state dims the *label*, not the whole button — fading the element
+   washes the fill out against the gradient and the control stops reading as a
+   button at all. Background and border stay at full strength. */
+.promo-btn:disabled {
+    opacity: 1;
+    cursor: not-allowed;
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.28);
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.promo-btn:disabled:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.28);
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* Carousel of "coming soon" previews. Scroll-snap does the paging so it stays
+   swipeable on a trackpad; the arrows and dots drive the same scroll. */
+.carousel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.carousel-track {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    gap: 14px;
+    background: transparent;
+}
+
+.carousel-track::-webkit-scrollbar {
+    display: none;
+}
+
+.carousel-slide {
+    flex: 0 0 100%;
+    scroll-snap-align: start;
+    min-width: 0;
+    /* `overflow-x: auto` on the track clips the card's soft drop shadow into a
+       hard-edged rectangle that shows through the rounded corners. Drop it. */
+    box-shadow: none;
+}
+
+.carousel-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.carousel-arrow {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 1px solid var(--rc-border);
+    background: transparent;
+    color: var(--rc-text-muted);
+    font-size: 14px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.carousel-arrow:hover {
+    color: var(--rc-text);
+    border-color: var(--rc-blue);
+}
+
+.carousel-dots {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.carousel-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    padding: 0;
+    border: 0;
+    background: var(--rc-border);
+    cursor: pointer;
+    transition: background 0.15s ease, width 0.15s ease;
+}
+
+.carousel-dot.active {
+    background: var(--rc-blue-soft);
+    width: 16px;
+    border-radius: 3px;
+}
+
+/* ---------------------------------------------------------------- buttons */
+
+.btn {
+    height: 36px;
+    padding: 0 16px;
+    border-radius: 6px;
+    border: 1px solid var(--rc-border);
+    background: transparent;
+    color: var(--rc-text-muted);
+    font-family: var(--rc-font);
+    font-size: 13px;
+    cursor: pointer;
+    /* Every button here has a FIXED height, so wrapped text does not grow the
+       control — it overflows it. Labels stay on one line and centre themselves
+       instead. */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+.btn:hover {
+    color: var(--rc-text);
+    border-color: var(--rc-blue);
+}
+
+.btn.primary {
+    border-color: var(--rc-blue);
+    background: var(--rc-blue);
+    color: #fff;
+}
+
+.btn.primary:hover {
+    filter: brightness(0.93);
+}
+
+.btn.danger {
+    border-color: rgba(255, 75, 106, 0.4);
+    color: var(--rc-danger);
+}
+
+.btn.danger:hover {
+    background: rgba(255, 75, 106, 0.1);
+}
+
+.btn.sm {
+    height: 26px;
+    padding: 0 10px;
+    font-size: 11.5px;
+    border-radius: 6px;
+}
+
+/* ------------------------------------------------------------ dock / bars */
+
+.dock {
+    position: fixed;
+    left: 50%;
+    bottom: 26px;
+    transform: translateX(-50%);
+    z-index: 45;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 12px 10px 20px;
+    border-radius: 1000px;
+    background: rgba(19, 31, 53, 0.92);
+    border: 1px solid var(--rc-border);
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(14px);
+}
+
+.dock-scope {
+    font-size: 11.5px;
+    color: var(--rc-text-faint);
+    white-space: nowrap;
+}
+
+.dock-div {
+    width: 1px;
+    height: 22px;
+    background: var(--rc-border);
+}
+
+.btn-copy {
+    height: 40px;
+    padding: 0 18px;
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    border-radius: 1000px;
+    border: 1px solid var(--rc-blue);
+    background: var(--rc-blue);
+    color: #fff;
+    font-family: var(--rc-font);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.btn-copy:hover {
+    filter: brightness(0.93);
+}
+
+.banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    margin-bottom: 14px;
+    border: 1px solid rgba(255, 75, 106, 0.35);
+    border-radius: 8px;
+    background: rgba(255, 75, 106, 0.07);
+}
+
+.banner span {
+    font-size: 11.5px;
+    line-height: 16px;
+    color: var(--rc-text);
+}
+
+/* ---------------------------------------------------------------- overlay */
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgba(6, 12, 22, 0.7);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+}
+
+.overlay.right {
+    justify-content: flex-end;
+    align-items: stretch;
+    padding: 0;
+    backdrop-filter: none;
+    background: rgba(6, 12, 22, 0.65);
+}
+
+.modal {
+    width: 720px;
+    max-width: 100%;
+    max-height: 82vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--rc-bg);
+    border: 1px solid var(--rc-border);
+    border-radius: 12px;
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+}
+
+.modal-head, .modal-foot {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 18px 22px;
+}
+
+.modal-head {
+    border-bottom: 1px solid var(--rc-border);
+}
+
+.modal-foot {
+    border-top: 1px solid var(--rc-border);
+    padding: 16px 22px;
+}
+
+.modal-body {
+    padding: 20px 22px;
+    overflow: auto;
+    background: var(--page-bg);
+}
+
+.modal-body pre {
+    margin: 0;
+    font-family: var(--rc-font);
+    font-size: 12.5px;
+    line-height: 20px;
+    color: #c9d6ea;
+    white-space: pre-wrap;
+}
+
+.drawer {
+    width: 440px;
+    max-width: 100%;
+    height: 100%;
+    background: var(--rc-bg);
+    border-left: 1px solid var(--rc-border);
+    box-shadow: -30px 0 90px rgba(0, 0, 0, 0.6);
+    display: flex;
+    flex-direction: column;
+}
+
+.drawer-body {
+    flex: 1;
+    overflow: auto;
+    padding: 26px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+}
+
+.drawer-foot {
+    display: flex;
+    gap: 10px;
+    padding: 18px 24px;
+    border-top: 1px solid var(--rc-border);
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.field label {
+    font-family: var(--rc-font-head);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--rc-text-faint);
+}
+
+/* Every text input in the drawer, whether or not it sits in a labelled
+   `.field`. The repo rows do not, and without this they fall back to the
+   browser default — a white box in a dark drawer. */
+.field input,
+.repo-row input {
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 6px;
+    border: 1px solid var(--rc-border);
+    background: var(--page-bg);
+    color: var(--rc-text);
+    font-family: var(--rc-font);
+    font-size: 13px;
+}
+
+.field input:focus,
+.repo-row input:focus {
+    outline: none;
+    border-color: var(--rc-blue);
+}
+
+.field input::placeholder,
+.repo-row input::placeholder {
+    color: var(--rc-text-faint);
+}
+
+.field .hint {
+    font-size: 11px;
+    color: var(--rc-text-faint);
+}
+
+.field .hint.warn {
+    color: var(--rc-warning);
+}
+
+.close-x {
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    border: 1px solid var(--rc-border);
+    background: transparent;
+    color: var(--rc-text-muted);
+    cursor: pointer;
+}
+
+.close-x:hover {
+    color: var(--rc-text);
+}
+
+.spacer {
+    flex: 1;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* --------------------------------------------------------------- empty/err */
+
+.center-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 14px;
+    padding: 64px 40px;
+}
+
+.center-state p {
+    margin: 0;
+    max-width: 420px;
+    font-size: 12px;
+    line-height: 18px;
+    color: var(--rc-text-muted);
+}
+
+.state-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px 4px 12px 4px;
+    background: var(--rc-bg-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.err-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--rc-bg-soft);
+}
+
+.err-row.bad {
+    background: rgba(255, 75, 106, 0.08);
+}
+
+.err-row img {
+    width: 15px;
+    height: 15px;
+    object-fit: contain;
+}
+
+@media (max-width: 1080px) {
+    .cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .grid-main {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 720px) {
+    .cards {
+        grid-template-columns: 1fr;
+    }
+
+    .wrap {
+        padding: 18px;
+    }
+
+    .range-label {
+        display: none;
+    }
+}
+
+/* --------------------------------------------------------- demo indicator */
+
+/* Demo is a launch mode (`npm run start:demo`), not something switchable at
+   runtime, so this is a label rather than a control. It exists only to make it
+   impossible to mistake a screenshot of fixtures for real activity. */
+.demo-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 30px;
+    flex: 0 0 auto;
+    padding: 0 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(241, 153, 41, 0.35);
+    background: rgba(241, 153, 41, 0.1);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--rc-warning);
+    cursor: default;
+}
+
+.demo-badge .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--rc-warning);
+    animation: recapPulse 2.4s ease-in-out infinite;
+}
+
+/* ------------------------------------------------------------- repo fields */
+
+/* The remove button matches the input's height exactly. A short button beside
+   a 38px input reads as misaligned rather than as a pair. */
+.repo-row {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+}
+
+.repo-row input {
+    flex: 1;
+    min-width: 0;
+}
+
+.repo-row .repo-remove {
+    flex: 0 0 38px;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    border: 1px solid var(--rc-border);
+    background: transparent;
+    color: var(--rc-text-faint);
+    font-family: var(--rc-font);
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.repo-row .repo-remove:hover {
+    color: var(--rc-danger);
+    border-color: rgba(255, 75, 106, 0.5);
+    background: rgba(255, 75, 106, 0.08);
+}
+
+/* ---------------------------------------------------------- danger actions */
+
+.settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.settings-note {
+    margin: 0;
+    font-size: 11px;
+    line-height: 16px;
+    color: var(--rc-text-faint);
+}
+
+.settings-note code {
+    font-family: var(--rc-font);
+    background: var(--rc-bg-cool);
+    padding: 1px 5px;
+    border-radius: 3px;
+}
+
+.confirm {
+    width: 460px;
+    max-width: 100%;
+    background: var(--rc-bg);
+    border: 1px solid var(--rc-border);
+    border-radius: 12px;
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.6);
+    padding: 26px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.confirm h2 {
+    margin: 0;
+    font-family: var(--rc-font-head);
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.confirm p {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 19px;
+    color: var(--rc-text-muted);
+}
+
+.confirm ul {
+    margin: 0;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.confirm li {
+    font-size: 12px;
+    line-height: 18px;
+    color: var(--rc-text-muted);
+}
+
+.confirm-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 6px;
+}
+
+.confirm-actions .btn {
+    flex: 1;
+    height: 38px;
+}
+
+/* ------------------------------------------------------------ diagnostics */
+
+.diag {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.diag-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: var(--rc-bg-soft);
+    border: 1px solid transparent;
+}
+
+.diag-row.failed {
+    background: rgba(255, 75, 106, 0.07);
+    border-color: rgba(255, 75, 106, 0.3);
+}
+
+.diag-row.ok {
+    background: rgba(55, 189, 108, 0.07);
+    border-color: rgba(55, 189, 108, 0.25);
+}
+
+.diag-head {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.diag-head img {
+    width: 15px;
+    height: 15px;
+    object-fit: contain;
+}
+
+.diag-name {
+    font-size: 12.5px;
+}
+
+.diag-state {
+    font-size: 10.5px;
+}
+
+.diag-state.ok {
+    color: var(--rc-success);
+}
+
+.diag-state.failed {
+    color: var(--rc-danger);
+}
+
+.diag-state.skipped {
+    color: var(--rc-text-faint);
+}
+
+.diag-detail {
+    font-size: 11.5px;
+    line-height: 17px;
+    color: var(--rc-text-muted);
+}
+
+.diag-provider {
+    font-size: 11px;
+    line-height: 16px;
+    color: var(--rc-text-faint);
+    padding: 7px 9px;
+    border-radius: 5px;
+    background: var(--page-bg);
+    word-break: break-word;
+}
+
+.diag-remedies {
+    margin: 0;
+    padding-left: 17px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.diag-remedies li {
+    font-size: 11.5px;
+    line-height: 17px;
+    color: var(--rc-text-muted);
+}
+
+.diag-remedies a {
+    word-break: break-all;
+}
+
+/* ------------------------------------------------------------------ misc */
+
+.setup-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border: 1px solid var(--rc-border);
+    border-radius: 8px;
+}
+
+.setup-row img {
+    width: 17px;
+    height: 17px;
+    object-fit: contain;
+}
+
+.setup-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.setup-title {
+    font-size: 12.5px;
+}
+
+.setup-sub {
+    font-size: 11px;
+    color: var(--rc-text-faint);
+}
+
+.setup-sub.connected {
+    color: var(--rc-success);
+}
+
+.loading-row {
+    display: flex;
+    gap: 16px;
+    padding: 14px 12px;
+}
+
+.loading-row .lines {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.btn.primary:disabled {
+    opacity: 1;
+    background: var(--rc-bg-cool);
+    border-color: var(--rc-border);
+    color: var(--rc-text-faint);
+}
+
+/* Restated with `.btn.promo-btn` so it outranks the generic `.btn:disabled`
+   above, which would otherwise fade the whole control. On the promo gradient
+   a faded button stops reading as a button at all: keep the fill and border at
+   full strength and dim only the label. */
+.btn.promo-btn:disabled,
+.btn.promo-btn:disabled:hover {
+    opacity: 1;
+    cursor: not-allowed;
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.28);
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* ------------------------------------------------------------- scrollbars */
+
+/* Native scrollbars are hidden everywhere and replaced by OverlayScrollbar.
+   A styled `::-webkit-scrollbar` still reserves a gutter, which narrows the
+   layout by its width — the thing we are trying to avoid. Zero width here
+   means the content box is the full viewport, and the custom thumb floats
+   over it. */
+* {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* legacy Edge */
+}
+
+*::-webkit-scrollbar { /* Chromium, WebKit */
+    width: 0;
+    height: 0;
+}
+
+.oscroll {
+    position: fixed;
+    z-index: 90;
+    width: 6px;
+    border-radius: 999px;
+    background: var(--rc-text-faint);
+    opacity: 0.45;
+    cursor: grab;
+    /* Fades out when idle. Position is set from JS every frame, so only the
+       paint properties are transitioned — animating `top` would lag the thumb
+       behind the content. */
+    transition: opacity 0.18s ease, background-color 0.18s ease, width 0.18s ease;
+}
+
+.oscroll:hover {
+    opacity: 0.85;
+    width: 8px;
+    background: var(--rc-blue-soft);
+}
+
+.oscroll.dragging {
+    opacity: 1;
+    width: 8px;
+    background: var(--rc-blue);
+    cursor: grabbing;
+}
+
+/* The thumb is inert to the pointer while it is invisible, so it can never
+   swallow a click aimed at the content underneath. */
+.oscroll[style*="display: none"] {
+    pointer-events: none;
+}
+
+
+/* ------------------------------------------------------------- checkboxes */
+
+/* Themed checkbox built on the real input via `appearance: none`, rather than
+   a hidden input plus a decorative span. Keeping the control itself means
+   keyboard focus, the label-click target and screen-reader semantics all work
+   without being reimplemented. */
+.check {
+    appearance: none;
+    -webkit-appearance: none;
+    margin: 0;
+    flex: 0 0 17px;
+    width: 17px;
+    height: 17px;
+    border-radius: 5px;
+    border: 1px solid var(--rc-border);
+    background: var(--page-bg);
+    cursor: pointer;
+    position: relative;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.check:hover {
+    border-color: var(--rc-blue);
+}
+
+.check:checked {
+    background: var(--rc-blue);
+    border-color: var(--rc-blue);
+}
+
+/* The tick: two borders of a rotated box. Cheaper than an SVG and it inherits
+   the animation for free. */
+.check::after {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 1.5px;
+    width: 4px;
+    height: 9px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg) scale(0.6);
+    opacity: 0;
+    transition: opacity 0.12s ease, transform 0.12s ease;
+}
+
+.check:checked::after {
+    opacity: 1;
+    transform: rotate(45deg) scale(1);
+}
+
+.check:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(47, 102, 241, 0.35);
+}
+
+.check:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.check-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    cursor: pointer;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--rc-border);
+    background: var(--rc-bg-soft);
+    transition: border-color 0.15s ease;
+}
+
+.check-row:hover {
+    border-color: var(--rc-blue);
+}
+
+.check-row:has(.check:checked) {
+    border-color: rgba(47, 102, 241, 0.5);
+    background: rgba(47, 102, 241, 0.07);
+}
+
+.check-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.check-title {
+    font-size: 12.5px;
+    color: var(--rc-text);
+}
+
+.check-hint {
+    font-size: 11px;
+    line-height: 16px;
+    color: var(--rc-text-faint);
+}
+
+/* ------------------------------------------------------- credential path */
+
+.field .hint code,
+.settings-note code,
+.check-hint code {
+    font-family: var(--rc-font);
+    background: var(--page-bg);
+    padding: 1px 5px;
+    border-radius: 3px;
+    word-break: break-all;
+    color: var(--rc-text-muted);
+}
+
+.field .hint.err {
+    color: var(--rc-danger);
+}
+
+.settings-note.err {
+    color: var(--rc-danger);
+}
+
+/* The hint wraps, the button never does. Both are flex children, and a flex
+   item shrinks below its content by default — which broke "Use default" onto
+   two lines and burst it out of its 26px height. */
+.path-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.path-actions .hint {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 11px;
+    line-height: 15px;
+    color: var(--rc-text-faint);
+}
+
+.path-actions .btn {
+    flex: 0 0 auto;
+    align-self: flex-start;
+}
+
+.field input:disabled {
+    opacity: 1;
+    color: var(--rc-text-faint);
+    background: var(--rc-bg-soft);
+    cursor: not-allowed;
+}
